@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Masjid</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 </head>
 
 <body class="bg-gray-100 text-gray-800">
@@ -188,10 +189,7 @@
                 <!-- Dropdown Bank (Hanya untuk Transfer ATM) -->
                 <div id="bankDropdown" class="hidden fade-in">
                     <select id="bankListNames" class="w-full border-gray-300 rounded-lg p-2 mb-4">
-                        <option value="">Pilih Bank</option>
-                        @foreach ($donasi->bank as $bank)
-                        <option value="{{ $bank['key'] }}">{{ $bank['nama'] }}</option>
-                        @endforeach
+                        <option value="" id="pilih_bank">Pilih Bank</option>
                     </select>
                 </div>
 
@@ -326,24 +324,36 @@
             // Update Payment Info
 
 
-            function getPaymentMethod() {
-                var xhr = new XMLHttpRequest();
-                var url = "{{route('select-payment-method')}}";
+            function getPaymentMethod(method) {
+                const data = [];
+                $.ajax({
+                    type: 'GET',
+                    url: "{{ route('select-payment-method') }}",
+                    data: {
+                        id: donasi_id
+                    },
+                    dataType: "json",
+                    success: function(response) {
+                        const data = response;
 
-                var data = JSON.stringify({
-                    id: donasi_id,
-                    
+                        if (method === 'bank') {
+
+                            bankDropdown.classList.remove('hidden');
+                            $('#bankListNames').html(
+                                '<option value="" id="pilih_bank">Pilih Bank</option>' +
+                                '<option value="' + data.no_rek_1 + '">'+ data.nama_atm_1 +'</option>' +
+                                '<option value="' + data.no_rek_2 + '">'+ data.nama_atm_2 +'</option>' +
+                                '<option value="' + data.no_rek_3 + '">'+ data.nama_atm_3 +'</option>'
+                            )
+                            
+                            $('#bankListNames').change(()=>{
+                                paymentInfo.classList.remove('hidden');
+                                paymentDetails.textContent = $('#bankListNames').find(":selected").val();
+                            })
+                        }
+                    },
                 });
-
-                xhr.open("GET", url, true);
-                xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                xhr.onload = function() {
-                    console.log(this.responseText);
-                    alert(this.responseText);
-                };
-
-                xhr.send(data);
-                return false;
+                return data;
             }
 
             function resetPaymentSections() {
@@ -355,12 +365,16 @@
 
             paymentMethod.addEventListener('change', (e) => {
                 const method = e.target.value;
-                alert(donasi_id)
                 resetPaymentSections();
 
-                getPaymentMethod();
+                const data = getPaymentMethod(method);
                 // if (method === 'bank') {
+
                 //     bankDropdown.classList.remove('hidden');
+                //     $('#bankListNames').html(
+                //         '<option value="" id="pilih_bank">Pilih Bank</option>' +
+                //         '<option value="" id="pilih_bank">Pilih Bank</option>'
+                //     );
                 // } else if (method.startsWith('Emoney')) {
                 //     paymentInfo.classList.remove('hidden');
                 //     const emoneyData = {
@@ -377,28 +391,29 @@
             });
 
             // Event listener untuk dropdown nama ATM
-            bankListNames.addEventListener('change', function() {
-                // Ambil nilai yang dipilih (ATM1, ATM2, atau ATM3)
-                const selectedValue = bankListNames.value;
+            // bankListNames.addEventListener('change', function() {
+            //     alert('test');
+            //     // Ambil nilai yang dipilih (ATM1, ATM2, atau ATM3)
+            //     const selectedValue = bankListNames.value;
 
-                // Cari opsi yang sesuai di bankListAccounts
-                const selectedAccountOption = Array.from(bankListAccounts.options).find(option => option.value === selectedValue);
+            //     // Cari opsi yang sesuai di bankListAccounts
+            //     const selectedAccountOption = Array.from(bankListAccounts.options).find(option => option.value === selectedValue);
 
-                if (selectedAccountOption) {
-                    // Ambil nomor rekening dari atribut data-rekening
-                    const rekeningNumber = selectedAccountOption.getAttribute('data-rekening');
+            //     if (selectedAccountOption) {
+            //         // Ambil nomor rekening dari atribut data-rekening
+            //         const rekeningNumber = selectedAccountOption.getAttribute('data-rekening');
 
-                    // Tampilkan nomor rekening di paymentDetails
-                    paymentDetails.textContent = rekeningNumber;
+            //         // Tampilkan nomor rekening di paymentDetails
+            //         paymentDetails.textContent = rekeningNumber;
 
-                    // Tampilkan elemen paymentInfo
-                    paymentInfo.classList.remove('hidden');
-                } else {
-                    // Jika tidak ada yang dipilih, sembunyikan paymentInfo
-                    paymentInfo.classList.add('hidden');
-                    paymentDetails.textContent = '';
-                }
-            });
+            //         // Tampilkan elemen paymentInfo
+            //         paymentInfo.classList.remove('hidden');
+            //     } else {
+            //         // Jika tidak ada yang dipilih, sembunyikan paymentInfo
+            //         paymentInfo.classList.add('hidden');
+            //         paymentDetails.textContent = '';
+            //     }
+            // });
 
             // Fungsi untuk menyalin konten
             window.copyContent = function() {
